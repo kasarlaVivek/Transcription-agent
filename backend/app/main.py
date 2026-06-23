@@ -17,7 +17,7 @@ from app.agent import run_meeting_agent
 from app.tools.transcribe import transcribe_audio
 from app.tools.slack import send_to_slack, test_slack_webhook
 from app.database import init_db, increment_meetings_used
-from app.auth import router as auth_router, get_optional_user
+from app.auth import router as auth_router, get_current_user
 from app.payments import router as payments_router
 
 app = FastAPI(
@@ -111,7 +111,7 @@ async def process_meeting(
     summary_level: Optional[str] = Form("standard"),
     email_tone: Optional[str] = Form("professional"),
     roster: Optional[str] = Form(None),
-    user: Optional[dict] = Depends(get_optional_user),
+    user: dict = Depends(get_current_user),
 ):
     """
     Accept either an uploaded file (audio or text) or pasted transcript text.
@@ -221,9 +221,8 @@ async def process_meeting(
             detail = "The AI model failed to process this meeting. Please try again."
         raise HTTPException(status_code=503, detail=detail)
 
-    # ── Track usage for authenticated users ─────────────────────────
-    if user is not None:
-        increment_meetings_used(user["id"])
+    # ── Track usage ───────────────────────────────────────────────
+    increment_meetings_used(user["id"])
 
     # ── Optionally post to Slack if configured ─────────────────────
     if _slack_config["webhook_url"]:

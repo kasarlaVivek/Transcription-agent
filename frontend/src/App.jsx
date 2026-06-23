@@ -173,6 +173,11 @@ export default function App() {
 
   // Handle new submission
   const handleSubmit = async (input) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setResult(null);
@@ -217,11 +222,18 @@ export default function App() {
         getMe().then((profile) => setUser(profile)).catch(() => {});
       }
     } catch (err) {
-      const message =
-        err.response?.data?.detail ||
-        err.message ||
-        "Could not connect to the backend server. Please verify the FastAPI backend is running.";
-      setError(message);
+      if (err.response?.status === 401) {
+        setAuthToken(null);
+        setUser(null);
+        setShowAuthModal(true);
+        setError("Your session expired. Please sign in again.");
+      } else {
+        const message =
+          err.response?.data?.detail ||
+          err.message ||
+          "Could not connect to the backend server. Please verify the FastAPI backend is running.";
+        setError(message);
+      }
     } finally {
       clearInterval(interval);
       setIsLoading(false);
@@ -671,7 +683,7 @@ export default function App() {
                     <span>🔒</span>
                     <span>
                       <button className="login-prompt-link" onClick={() => setShowAuthModal(true)}>Sign in</button>
-                      {" "}to save meetings and unlock your account features.
+                      {" "}required to analyse a meeting.
                     </span>
                   </div>
                 )}
