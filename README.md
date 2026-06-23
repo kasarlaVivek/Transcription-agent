@@ -9,6 +9,11 @@ The goal is to close the loop between a meeting and the work that follows it:
 from raw audio or text, to who-owns-what, to addressed, role-aware emails that a
 meeting administrator can review and send in one click.
 
+## Live Demo
+
+- Frontend: https://transcription-agent.vercel.app
+- Backend: https://huggingface.co/spaces/kasarlasaivivek/novameet-backend-v2
+
 ## Features
 
 - Audio transcription. Upload `.mp3`, `.wav`, `.m4a`, `.webm`, or `.ogg` files;
