@@ -30,6 +30,6 @@ ENV HOME=/home/user
 # Space wakes from sleep don't also have to download it over the network.
 RUN python -c "import whisper; whisper.load_model('base')"
 
-EXPOSE 8000
+EXPOSE 7860
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
