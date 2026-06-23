@@ -8,10 +8,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
+# openai-whisper's legacy setup.py needs pkg_resources at build time, which
+# recent setuptools releases dropped. Pip's build isolation always fetches
+# the latest setuptools into a throwaway env regardless of what's installed
+# here, so pin an older setuptools and disable isolation to force its use.
+RUN pip install --no-cache-dir --upgrade pip "setuptools==69.5.1" wheel
 # CPU-only torch wheel: openai-whisper pulls in full CUDA torch by default,
 # which is ~2GB heavier and unnecessary on Spaces' free CPU tier.
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir --no-build-isolation -r requirements.txt
 
 COPY . .
 
