@@ -21,6 +21,8 @@ ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",
 # ── File handling ─────────────────────────────────────────────────
 ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".webm", ".ogg"}
 ALLOWED_TEXT_EXTENSIONS = {".txt", ".vtt", ".srt"}
+ALLOWED_ROSTER_EXTENSIONS = {".csv", ".xlsx"}
+MAX_ROSTER_SIZE_MB = 2
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 

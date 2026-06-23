@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { parseRosterFile } from "../api/client";
 
 const ACCEPTED_FILE_TYPES = {
   "audio/mpeg": [".mp3"],
@@ -15,6 +16,8 @@ export default function UploadZone({ onSubmit, isLoading }) {
   const [file, setFile] = useState(null);
   const [text, setText] = useState("");
   const [roster, setRoster] = useState([{ name: "", email: "", role: "" }]);
+  const [rosterImportError, setRosterImportError] = useState(null);
+  const [rosterImporting, setRosterImporting] = useState(false);
 
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles.length > 0) {
@@ -42,6 +45,25 @@ export default function UploadZone({ onSubmit, isLoading }) {
 
   const removeRosterRow = (index) => {
     setRoster((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRosterFileImport = async (e) => {
+    const importedFile = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!importedFile) return;
+
+    setRosterImportError(null);
+    setRosterImporting(true);
+    try {
+      const imported = await parseRosterFile(importedFile);
+      setRoster(imported.length > 0 ? imported : [{ name: "", email: "", role: "" }]);
+    } catch (err) {
+      setRosterImportError(
+        err.response?.data?.detail || "Could not import this file."
+      );
+    } finally {
+      setRosterImporting(false);
+    }
   };
 
   // Keep only rows that have at least a name + email.
@@ -176,6 +198,19 @@ export default function UploadZone({ onSubmit, isLoading }) {
           <p className="roster-hint">
             Add names, emails &amp; roles so drafts are addressed and ready to send.
           </p>
+          <label className={`roster-import-btn ${rosterImporting ? "loading" : ""}`}>
+            {rosterImporting ? "Importing..." : "Import CSV / Excel"}
+            <input
+              type="file"
+              accept=".csv,.xlsx"
+              onChange={handleRosterFileImport}
+              disabled={isLoading || rosterImporting}
+              hidden
+            />
+          </label>
+          {rosterImportError && (
+            <p className="roster-import-error">{rosterImportError}</p>
+          )}
         </div>
 
         <div className="roster-rows">

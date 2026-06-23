@@ -62,6 +62,20 @@ export async function processMeeting({ file, text, summary_level, email_tone, ro
 }
 
 /**
+ * Parse an uploaded CSV/Excel attendee list into roster rows.
+ */
+export async function parseRosterFile(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await client.post("/roster/parse", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return response.data.roster;
+}
+
+/**
  * Health check — ping the backend.
  */
 export async function ping() {

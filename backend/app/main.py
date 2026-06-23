@@ -11,11 +11,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 
-from app.config import ALLOWED_ORIGINS, ALLOWED_AUDIO_EXTENSIONS, ALLOWED_TEXT_EXTENSIONS, MAX_AUDIO_SIZE_MB, UPLOAD_DIR
+from app.config import (
+    ALLOWED_ORIGINS,
+    ALLOWED_AUDIO_EXTENSIONS,
+    ALLOWED_TEXT_EXTENSIONS,
+    ALLOWED_ROSTER_EXTENSIONS,
+    MAX_AUDIO_SIZE_MB,
+    MAX_ROSTER_SIZE_MB,
+    UPLOAD_DIR,
+)
 from app.schemas import MeetingResponse
 from app.agent import run_meeting_agent
 from app.tools.transcribe import transcribe_audio
 from app.tools.slack import send_to_slack, test_slack_webhook
+from app.tools.roster import parse_roster_csv, parse_roster_excel
 from app.database import init_db, increment_meetings_used
 from app.auth import router as auth_router, get_current_user
 from app.payments import router as payments_router
@@ -101,6 +110,51 @@ async def slack_status():
     """Check whether Slack is currently connected."""
     connected = _slack_config["webhook_url"] is not None
     return {"connected": connected}
+
+
+# ── Roster file upload ─────────────────────────────────────────────
+@app.post("/roster/parse")
+async def roster_parse(
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user),
+):
+    """
+    Parse an uploaded CSV or Excel (.xlsx) attendee list into
+    {name, email, role} rows the frontend can drop into the roster editor.
+    """
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in ALLOWED_ROSTER_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported roster file type: {ext}. Accepted: {ALLOWED_ROSTER_EXTENSIONS}",
+        )
+
+    contents = await file.read()
+    size_mb = len(contents) / (1024 * 1024)
+    if size_mb > MAX_ROSTER_SIZE_MB:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Roster file exceeds {MAX_ROSTER_SIZE_MB}MB limit.",
+        )
+
+    try:
+        if ext == ".csv":
+            roster = parse_roster_csv(contents)
+        else:
+            roster = parse_roster_excel(contents)
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not read this file. Make sure it's a valid CSV or .xlsx with name/email columns.",
+        )
+
+    if not roster:
+        raise HTTPException(
+            status_code=400,
+            detail="No valid rows found. Make sure the file has 'name' and 'email' columns.",
+        )
+
+    return {"roster": roster}
 
 
 # ── Main endpoint ─────────────────────────────────────────────────
